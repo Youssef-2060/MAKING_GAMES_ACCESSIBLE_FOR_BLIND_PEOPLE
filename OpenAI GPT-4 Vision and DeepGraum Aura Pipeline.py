@@ -1,5 +1,4 @@
 from openai import OpenAI
-<<<<<<< HEAD
 import base64    # Convert Image to Base64 with error handling
 import requests  # Ensures the file exists before reading
 from dotenv import load_dotenv  # Load environment variables from .env file
@@ -8,17 +7,6 @@ import cv2       # For image processing (Extracting frames from video)
 from pathlib import Path
 
 # Load environment variables from .env file and Initialize OpenAI client
-=======
-import base64  # Convert Image to Base64 with error handling
-import requests  # Ensures the file exists before reading
-from dotenv import load_dotenv  # Load environment variables from .env file
-import os  # Prevents crashes due to missing or unreadable files
-import cv2  # For image processing (Extracting frames from video)
-from pathlib import Path
-
-# Load environment variables from .env file and Initialize OpenAI client
-# load_dotenv()
->>>>>>> 0c5dd6157cb00b02bf9226b6d345d90d85aa4e30
 dotenv_path = Path('/Users/youssefibrahim/Documents/GMU Research/Research_with_Dr_Yotam_Gingold 2/.env')
 load_dotenv(dotenv_path=dotenv_path)
 api_key = os.getenv("OPENAI_API_KEY")
@@ -45,20 +33,13 @@ def encode_image(image_path):
 
 # Predefined prompts for different types of analysis
 PROMPTS = {
-<<<<<<< HEAD
     "descriptive": (
         "You are describing this scene to a blind player. "
         "What are the most important features that help them make a navigation decision next? "
         "Describe the layout, objects, and direction possibilities."
     ),
     "brief": "Describe this scene briefly."
-=======
-    "descriptive": "Describe the main elements of the game scene, including characters, objects, and the environment. How do they interact or affect each other?",
-    "feature_identification": "Identify the key characters or elements in the game scene. Describe their actions, emotions, or roles in the current gameplay.",
-    "contextual_analysis": "Analyze the game scene as if it were part of a specific genre or game style, such as a retro RPG, a futuristic sci-fi, or a medieval fantasy.",
-    "technical_analysis": "Extract and list all text visible in this game scene, including user interface elements, dialogue, and any text-based instructions or cues.",
-    "creative_interpretation": "Create a short narrative or dialogue based on the game scene. What could the characters be thinking or saying at this moment?"
->>>>>>> 0c5dd6157cb00b02bf9226b6d345d90d85aa4e30
+
 }
 
 # Send to OpenAI GPT-4 Vision for Image-to-Text Processing
@@ -78,11 +59,7 @@ def get_description(image_path, prompt_type="descriptive", custom_prompt=None):
                 {
                     "role": "user",
                     "content": [
-<<<<<<< HEAD
                         {"type": "text", "text": prompt},
-=======
-                        {"type": "text", "text": PROMPTS.get(prompt_type, PROMPTS["descriptive"])},
->>>>>>> 0c5dd6157cb00b02bf9226b6d345d90d85aa4e30
                         {
                             "type": "image_url",
                             "image_url": {
@@ -101,7 +78,6 @@ def get_description(image_path, prompt_type="descriptive", custom_prompt=None):
 
 
 
-<<<<<<< HEAD
 # Extracting frames every second from the video
 def extract_frames_every_second(video_path, output_folder="frames", frequency=1):
     cap = cv2.VideoCapture(video_path)
@@ -172,31 +148,6 @@ while frame_index < len(frame_paths):   # Loop through the frames
     else:
         print("Invalid input. Type 'n', 'r', or 'q'.")
 
-=======
-# Extracting frames from the video
-def extract_frame(video_path, frame_number=0, output_path="frame.jpg"):
-    cap = cv2.VideoCapture(video_path)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-    success, frame = cap.read()
-    if success:
-        cv2.imwrite(output_path, frame)
-        return output_path
-    else:
-        print("Error: Could not extract frame.")
-        return None
-
-
-video_path = "Frames.mp4"
-image_path = extract_frame(video_path, frame_number=0)  # Extract the first frame
-
-if image_path is None:
-    print("Frame extraction failed. Exiting.")
-    exit(1)
-
-if image_path:
-    description = get_description(image_path, prompt_type="feature_identification")
-    print("OpenAI GPT-4 Vision Output:", description)
->>>>>>> 0c5dd6157cb00b02bf9226b6d345d90d85aa4e30
 
 # """
 # DeepGram Aura Pipeline 
