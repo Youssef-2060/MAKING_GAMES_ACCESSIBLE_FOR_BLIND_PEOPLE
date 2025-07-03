@@ -78,6 +78,8 @@ def get_description(image_path, prompt_type="descriptive", custom_prompt=None):
         print(f"OpenAI GPT-4 Vision API Error: {e}")
         return "Error processing image"
 
+if os.path.exists("descriptions.json"): # Remove the cached descriptions file if it exists
+    os.remove("descriptions.json")
 
 def load_cached_descriptions(path="descriptions.json"): # Load cached descriptions from a JSON file
     if os.path.exists(path):
@@ -89,37 +91,35 @@ def save_cached_descriptions(cache, path="descriptions.json"): # Save cached des
         json.dump(cache, f, indent=2)
 
 
-
-# Detect keyframes in a video based on frame difference (Fast Movement Detection and Scene Change Detection)
-def detect_keyframes(video_path, output_folder="frames", threshold=30.0):
+video_path = "Frames.mp4"
+# Extracting frames every second from the video
+def extract_frames_every_second(video_path, output_folder="frames", frequency=1):
     cap = cv2.VideoCapture(video_path)
-    keyframes = []
-    success, prev = cap.read()
-    frame_id = 0
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = total_frames / fps
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    while success:
-        success, curr = cap.read()
-        if not success:
-            break
-        diff = cv2.absdiff(prev, curr)
-        score = diff.sum() / (diff.shape[0] * diff.shape[1])
-
-        if score > threshold:
-            filename = os.path.join(output_folder, f"frame_{frame_id}.jpg")
-            cv2.imwrite(filename, curr)
-            keyframes.append(filename)
-
-        prev = curr
-        frame_id += 1
+    extracted_paths = []
+    for sec in range(0, int(duration) + 1, frequency):
+        frame_number = int(sec * fps)
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        success, frame = cap.read()
+        if success:
+            output_path = os.path.join(output_folder, f"frame_{sec}s.jpg")
+            cv2.imwrite(output_path, frame)
+            extracted_paths.append(output_path)
+        else:
+            print(f"Failed to extract frame at {sec}s")
 
     cap.release()
-    return keyframes
+    return extracted_paths
 
-video_path = "Frames.mp4"
-frame_paths = detect_keyframes(video_path)  # Keyframe detection replaces frame sampling
+
+
+frame_paths = extract_frames_every_second(video_path) # Extract the frames every second from the video
 
 
 # Not used in the final code, but can be uncommented for descriptive analysis of each frame:
@@ -141,14 +141,15 @@ def describe_scene_change(image_path1, image_path2):    # Describe the change be
 frame_index = 0
 cached_descriptions = load_cached_descriptions()
 
+force_repeat = False
 while frame_index < len(frame_paths):
     current_path = frame_paths[frame_index]
-    force_repeat = False
 
     if current_path not in cached_descriptions or force_repeat:
         description = get_description(current_path, custom_prompt=PROMPTS["descriptive"])
         cached_descriptions[current_path] = description
         save_cached_descriptions(cached_descriptions)  # Save after each new frame
+        force_repeat = False
     else:
         description = cached_descriptions[current_path]
 
@@ -158,16 +159,20 @@ while frame_index < len(frame_paths):
 
     if user_input == 'n':
         frame_index += 1
+        force_repeat = False
     elif user_input == 'b':
         frame_index = max(0, frame_index - 1)
+        force_repeat = False
     elif user_input == 'r':
         force_repeat = True
-        continue
     elif user_input == 'q':
         print("Exiting narration loop.")
         break
     else:
         print("Invalid input. Type 'n', 'b', 'r', or 'q'.")
+
+print("\n🎉 All frames processed. No more scenes to describe.")
+
 
 
 # """
