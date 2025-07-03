@@ -5,6 +5,8 @@ from dotenv import load_dotenv  # Load environment variables from .env file
 import os        # Prevents crashes due to missing or unreadable files
 import cv2       # For image processing (Extracting frames from video)
 from pathlib import Path
+import json
+
 
 # Load environment variables from .env file and Initialize OpenAI client
 dotenv_path = Path('/Users/youssefibrahim/Documents/GMU Research/Research_with_Dr_Yotam_Gingold 2/.env')
@@ -77,39 +79,53 @@ def get_description(image_path, prompt_type="descriptive", custom_prompt=None):
         return "Error processing image"
 
 
+def load_cached_descriptions(path="descriptions.json"): # Load cached descriptions from a JSON file
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            return json.load(f)
+    return {}
+def save_cached_descriptions(cache, path="descriptions.json"): # Save cached descriptions to a JSON file
+    with open(path, "w") as f:
+        json.dump(cache, f, indent=2)
 
-# Extracting frames every second from the video
-def extract_frames_every_second(video_path, output_folder="frames", frequency=1):
+
+
+# Detect keyframes in a video based on frame difference (Fast Movement Detection and Scene Change Detection)
+def detect_keyframes(video_path, output_folder="frames", threshold=30.0):
     cap = cv2.VideoCapture(video_path)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    duration = total_frames / fps
+    keyframes = []
+    success, prev = cap.read()
+    frame_id = 0
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 
-    extracted_paths = []
-    for sec in range(0, int(duration) + 1, frequency):
-        frame_number = int(sec * fps)
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-        success, frame = cap.read()
-        if success:
-            output_path = os.path.join(output_folder, f"frame_{sec}s.jpg")
-            cv2.imwrite(output_path, frame)
-            extracted_paths.append(output_path)
-        else:
-            print(f"Failed to extract frame at {sec}s")
+    while success:
+        success, curr = cap.read()
+        if not success:
+            break
+        diff = cv2.absdiff(prev, curr)
+        score = diff.sum() / (diff.shape[0] * diff.shape[1])
+
+        if score > threshold:
+            filename = os.path.join(output_folder, f"frame_{frame_id}.jpg")
+            cv2.imwrite(filename, curr)
+            keyframes.append(filename)
+
+        prev = curr
+        frame_id += 1
 
     cap.release()
-    return extracted_paths
-
+    return keyframes
 
 video_path = "Frames.mp4"
-frame_paths = extract_frames_every_second(video_path) # Extract the frames every second from the video
+frame_paths = detect_keyframes(video_path)  # Keyframe detection replaces frame sampling
 
-for idx, path in enumerate(frame_paths):
-    description = get_description(path, custom_prompt=PROMPTS["descriptive"])
-    print(f"\nFrame {idx} ({path}):\n{description}")  
+
+# Not used in the final code, but can be uncommented for descriptive analysis of each frame:
+# for idx, path in enumerate(frame_paths):
+#     description = get_description(path, custom_prompt=PROMPTS["descriptive"])
+#     print(f"\nFrame {idx} ({path}):\n{description}")  
 
 if not frame_paths:
     print("No frames were extracted. Exiting.")
@@ -123,30 +139,35 @@ def describe_scene_change(image_path1, image_path2):    # Describe the change be
 
 
 frame_index = 0
-cached_descriptions = {}
+cached_descriptions = load_cached_descriptions()
 
-while frame_index < len(frame_paths):   # Loop through the frames
+while frame_index < len(frame_paths):
     current_path = frame_paths[frame_index]
+    force_repeat = False
 
-    if current_path not in cached_descriptions:
+    if current_path not in cached_descriptions or force_repeat:
         description = get_description(current_path, custom_prompt=PROMPTS["descriptive"])
         cached_descriptions[current_path] = description
+        save_cached_descriptions(cached_descriptions)  # Save after each new frame
     else:
         description = cached_descriptions[current_path]
 
     print(f"\n[Frame {frame_index}] {description}")
 
-    user_input = input("\nType 'n' for next frame, 'r' to repeat, or 'q' to quit: ").strip().lower()
+    user_input = input("\nType 'n' for next, 'b' for back, 'r' to repeat, or 'q' to quit: ").strip().lower()
 
     if user_input == 'n':
         frame_index += 1
+    elif user_input == 'b':
+        frame_index = max(0, frame_index - 1)
     elif user_input == 'r':
+        force_repeat = True
         continue
     elif user_input == 'q':
         print("Exiting narration loop.")
         break
     else:
-        print("Invalid input. Type 'n', 'r', or 'q'.")
+        print("Invalid input. Type 'n', 'b', 'r', or 'q'.")
 
 
 # """
