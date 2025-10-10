@@ -1,3 +1,5 @@
 # .gitignore
 .env
-*.env
+*.envGroq and deepgram Aura Pipeline calls*.py
+*Aura Pipeline*.pptx
+Research Papers.docx
