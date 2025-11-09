@@ -1,4 +1,4 @@
-# 🎮 Making Games Accessible for Blind Players
+# 🎮 Making Games Accessible for Visually Impaired Players
 
 This research project, developed under Professor Yotam Gingold at George Mason University, explores how 2D and 3D games can be made accessible to blind players through AI-powered scene narration.
 
